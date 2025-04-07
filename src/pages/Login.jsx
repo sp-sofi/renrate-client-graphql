@@ -11,19 +11,22 @@ const Login = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const response = await API.post("", {
+      const response = await API.post("/graphql", {
         query: `
           mutation Login($email: String!, $password: String!) {
-            login(email: $email, password: $password)
+            login(email: $email, password: $password) {
+              token
+              role
+            }
           }
         `,
         variables: { email, password },
       });
 
-      const token = response.data.data.login;
+      const { token, role } = response.data.data.login;
 
       localStorage.setItem("token", token);
-      localStorage.setItem("user", JSON.stringify({ email }));
+      localStorage.setItem("user", JSON.stringify({ email, role }));
 
       navigate("/browse");
     } catch (err) {

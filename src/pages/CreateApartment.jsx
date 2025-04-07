@@ -6,7 +6,6 @@ const CreateApartment = () => {
   const [form, setForm] = useState({
     title: "",
     address: "",
-    price: "",
     description: "",
     image: "",
   });
@@ -24,7 +23,26 @@ const CreateApartment = () => {
     setLoading(true);
 
     try {
-      await API.post("/apartments", { ...form, price: Number(form.price) });
+      const res = await API.post("/graphql", {
+        query: `
+          mutation CreateApartment($input: ApartmentInput!) {
+            createApartment(input: $input) {
+              id
+              title
+            }
+          }
+        `,
+        variables: {
+          input: {
+            title: form.title,
+            address: form.address,
+            description: form.description,
+            image: form.image,
+          },
+        },
+      });
+
+      console.log("Apartment created:", res.data.data.createApartment);
 
       const channel = new BroadcastChannel("apartments_channel");
       channel.postMessage("apartment_added");
@@ -32,7 +50,9 @@ const CreateApartment = () => {
 
       navigate("/my-apartments");
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to create apartment");
+      alert(
+        err.response?.data?.errors?.[0]?.message || "Failed to create apartment"
+      );
     } finally {
       setLoading(false);
     }

@@ -15,21 +15,43 @@ const ApartmentDetails = () => {
     setUser(savedUser);
 
     const fetchApartment = async () => {
-      try {
-        const res = await API.get(`/apartments/${id}`);
-        setApartment(res.data);
-      } catch (err) {
-        console.error("Failed to load apartment:", err);
-      }
+      const res = await API.post("/graphql", {
+        query: `
+          query GetApartment($id: ID!) {
+            apartment(id: $id) {
+              id
+              title
+              address
+              image
+              description
+              rating
+            }
+          }
+        `,
+        variables: { id },
+      });
+
+      setApartment(res.data.data.apartment);
     };
 
     const fetchReviews = async () => {
-      try {
-        const res = await API.get(`/reviews/${id}`);
-        setReviews(res.data.reviews);
-      } catch (err) {
-        console.error("Failed to load reviews:", err);
-      }
+      const res = await API.post("/graphql", {
+        query: `
+          query Reviews($apartmentId: ID!) {
+            reviews(apartmentId: $apartmentId) {
+              id
+              comment
+              rating
+              user {
+                name
+              }
+            }
+          }
+        `,
+        variables: { apartmentId: id },
+      });
+
+      setReviews(res.data.data.reviews);
     };
 
     fetchApartment();

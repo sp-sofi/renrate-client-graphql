@@ -10,8 +10,20 @@ const EmailVerification = () => {
   useEffect(() => {
     const verifyEmail = async () => {
       try {
-        await API.get(`/auth/verify/${token}`);
-        setStatus("success");
+        const res = await API.post("/graphql", {
+          query: `
+            mutation VerifyEmail($token: String!) {
+              verifyEmail(token: $token)
+            }
+          `,
+          variables: { token },
+        });
+
+        if (res.data.data.verifyEmail) {
+          setStatus("success");
+        } else {
+          setStatus("error");
+        }
       } catch (err) {
         console.error("Verification error:", err);
         setStatus("error");

@@ -6,9 +6,8 @@ const EditApartment = () => {
   const [form, setForm] = useState({
     title: "",
     address: "",
-    price: "",
-    description: "",
     image: "",
+    description: "",
     isActive: true,
   });
 
@@ -20,14 +19,28 @@ const EditApartment = () => {
   useEffect(() => {
     const fetchApartment = async () => {
       try {
-        const res = await API.get(`/apartments/${id}`);
+        const res = await API.post("/graphql", {
+          query: `
+            query GetApartment($id: ID!) {
+              apartment(id: $id) {
+                title
+                address
+                image
+                description
+                isActive
+              }
+            }
+          `,
+          variables: { id },
+        });
+
+        const apt = res.data.data.apartment;
         setForm({
-          title: res.data.title,
-          address: res.data.address,
-          price: res.data.price,
-          description: res.data.description || "",
-          image: res.data.image,
-          isActive: res.data.isActive ?? true,
+          title: apt.title,
+          address: apt.address,
+          image: apt.image,
+          description: apt.description || "",
+          isActive: apt.isActive ?? true,
         });
       } catch (err) {
         console.error("Failed to fetch apartment:", err);
@@ -53,15 +66,30 @@ const EditApartment = () => {
     setLoading(true);
 
     try {
-      await API.put(`/apartments/${id}`, {
-        ...form,
-        price: Number(form.price),
+      await API.post("/graphql", {
+        query: `
+          mutation UpdateApartment($id: ID!, $input: ApartmentUpdateInput!) {
+            updateApartment(id: $id, input: $input) {
+              id
+            }
+          }
+        `,
+        variables: {
+          id,
+          input: {
+            title: form.title,
+            address: form.address,
+            image: form.image,
+            description: form.description,
+            isActive: form.isActive,
+          },
+        },
       });
 
       navigate("/my-apartments");
     } catch (err) {
       console.error("Update error:", err);
-      alert(err.response?.data?.message || "Failed to update apartment");
+      alert("Failed to update apartment");
     } finally {
       setLoading(false);
     }

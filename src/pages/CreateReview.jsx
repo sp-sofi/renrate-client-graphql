@@ -9,15 +9,46 @@ const CreateReview = () => {
   const [rating, setRating] = useState(0);
   const [hover, setHover] = useState(0);
   const [comment, setComment] = useState("");
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (rating === 0) {
+      setError("Please select a rating before submitting.");
+      return;
+    }
+
     try {
-      await API.post(`/reviews/${id}`, { rating, comment });
+      const res = await API.post("/graphql", {
+        query: `
+          mutation CreateReview($input: ReviewInput!) {
+            createReview(input: $input) {
+              id
+              rating
+              comment
+              user {
+                name
+              }
+            }
+          }
+        `,
+        variables: {
+          input: {
+            apartmentId: id,
+            rating,
+            comment,
+          },
+        },
+      });
+
+      console.log("Review created:", res.data.data.createReview);
       navigate(`/apartments/${id}`);
     } catch (err) {
       console.error("Submit review error:", err);
-      alert(err.response?.data?.message || "Error submitting review");
+      alert(
+        err.response?.data?.errors?.[0]?.message || "Error submitting review"
+      );
     }
   };
 
@@ -35,7 +66,10 @@ const CreateReview = () => {
             {[1, 2, 3, 4, 5].map((star) => (
               <span
                 key={star}
-                onClick={() => setRating(star)}
+                onClick={() => {
+                  setRating(star);
+                  setError("");
+                }}
                 onMouseEnter={() => setHover(star)}
                 onMouseLeave={() => setHover(0)}
                 className={`material-symbols-outlined text-3xl cursor-pointer transition ${
@@ -48,6 +82,7 @@ const CreateReview = () => {
               </span>
             ))}
           </div>
+          {error && <p className="text-red-500 mt-1">{error}</p>}
         </div>
 
         <div className="mb-4">

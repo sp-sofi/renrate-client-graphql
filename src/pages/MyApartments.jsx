@@ -10,22 +10,23 @@ const MyApartments = () => {
   useEffect(() => {
     const fetchApartments = async () => {
       try {
-        const res = await API.get("/apartments/mine");
-        const apartments = res.data;
-
-        const apartmentsWithCounts = await Promise.all(
-          apartments.map(async (apt) => {
-            try {
-              const reviewRes = await API.get(`/reviews/${apt._id}`);
-              return { ...apt, reviewCount: reviewRes.data.reviews.length };
-            } catch (err) {
-              console.error(`Error fetching reviews for apartment ${apt._id}`);
-              return { ...apt, reviewCount: 0 };
+        const res = await API.post("/graphql", {
+          query: `
+            query {
+              myApartments {
+                id
+                title
+                address
+                image
+                isActive
+                rating
+                reviewCount
+              }
             }
-          })
-        );
+          `,
+        });
 
-        setApartments(apartmentsWithCounts);
+        setApartments(res.data.data.myApartments);
       } catch (err) {
         console.error("Error loading your apartments:", err);
       } finally {
@@ -34,14 +35,8 @@ const MyApartments = () => {
     };
 
     fetchApartments();
-
-    const interval = setInterval(() => {
-      fetchApartments();
-    }, 5000);
-
-    return () => {
-      clearInterval(interval);
-    };
+    const interval = setInterval(() => fetchApartments(), 5000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleDelete = async (id) => {
@@ -51,8 +46,20 @@ const MyApartments = () => {
     if (!confirm) return;
 
     try {
-      await API.delete(`/apartments/${id}`);
-      setApartments((prev) => prev.filter((apt) => apt._id !== id));
+      const res = await API.post("/graphql", {
+        query: `
+          mutation DeleteApartment($id: ID!) {
+            deleteApartment(id: $id)
+          }
+        `,
+        variables: { id },
+      });
+
+      if (res.data.data.deleteApartment) {
+        setApartments((prev) => prev.filter((apt) => apt.id !== id));
+      } else {
+        alert("Failed to delete apartment");
+      }
     } catch (err) {
       console.error("Delete error:", err);
       alert("Failed to delete apartment");
@@ -86,7 +93,7 @@ const MyApartments = () => {
         </thead>
         <tbody>
           {apartments.map((apt) => (
-            <tr key={apt._id} className="hover align-top">
+            <tr key={apt.id} className="hover align-top">
               <td className="flex items-center gap-4 py-4">
                 <img
                   src={apt.image}
@@ -124,13 +131,13 @@ const MyApartments = () => {
                 <div className="flex gap-2">
                   <button
                     className="text-blue-600 hover:text-blue-800"
-                    onClick={() => navigate(`/apartments/edit/${apt._id}`)}
+                    onClick={() => navigate(`/apartments/edit/${apt.id}`)}
                   >
                     <span className="material-symbols-outlined">edit</span>
                   </button>
                   <button
                     className="text-red-600 hover:text-red-800"
-                    onClick={() => handleDelete(apt._id)}
+                    onClick={() => handleDelete(apt.id)}
                   >
                     <span className="material-symbols-outlined">delete</span>
                   </button>
