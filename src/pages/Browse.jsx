@@ -66,29 +66,37 @@ const Browse = () => {
 
   useEffect(() => {
     let result = [...allApartments];
+    let shouldResetPage = false;
 
     if (filters.search) {
       result = result.filter((apt) =>
         apt.title.toLowerCase().includes(filters.search.toLowerCase())
       );
+      shouldResetPage = true;
     }
 
     if (filters.minPrice) {
       result = result.filter((apt) => apt.price >= parseInt(filters.minPrice));
+      shouldResetPage = true;
     }
+
     if (filters.maxPrice) {
       result = result.filter((apt) => apt.price <= parseInt(filters.maxPrice));
+      shouldResetPage = true;
     }
 
     if (filters.minRating) {
       result = result.filter(
         (apt) => apt.rating >= parseFloat(filters.minRating)
       );
+      shouldResetPage = true;
     }
+
     if (filters.maxRating) {
       result = result.filter(
         (apt) => apt.rating <= parseFloat(filters.maxRating)
       );
+      shouldResetPage = true;
     }
 
     if (filters.sort === "recent") {
@@ -100,7 +108,9 @@ const Browse = () => {
     }
 
     setFilteredApartments(result);
-    setPage(1);
+    if (shouldResetPage) {
+      setPage(1);
+    }
   }, [filters, allApartments]);
 
   const handleChange = (e) => {
